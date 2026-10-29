@@ -15,6 +15,8 @@ Claude builds each one as a **DaVinci Resolve timeline**, so you can tweak the c
 | `skills/highlight-reel/SKILL.md` | The editing recipe Claude follows. |
 | `docs/audio-brief.md` | Music licence (StreamBeats), SFX rules and loudness targets. |
 | `scripts/scan_xp.py` | Finds kills by spotting the yellow "N XP" popup next to the crosshair. |
+| `scripts/validate_reel.py` | Checks a rendered MP4: resolution, 60 fps, length, -14 LUFS, true peak, fades. Saves an image of the last frame before each cut so you can spot deaths and scoreboards. |
+| `scripts/check_review.py` | Optional Stop hook: blocks Claude from finishing while a fresh render in `Review\` hasn't passed `validate_reel.py`. |
 | `thumbnails/make_thumbnail.py` | Makes a 1280x720 thumbnail from a still. See `thumbnail-recipe.md`. |
 | `automation/obs-session-end.lua` + `launch.ps1` | Optional: starts a build automatically when you close OBS. |
 
@@ -45,6 +47,22 @@ pwsh -File launch.ps1 -DryRun
 ```
 
 If your videos aren't in `%USERPROFILE%\Videos`, pass `-Videos <path>`.
+
+### Optional: block unvalidated renders
+
+Add this to `<VIDEOS>\.claude\settings.json` (set `HIGHLIGHTS_DIR` to your `Highlights` folder, the one containing `Review\`):
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "python -I <TOOLS>/check_review.py" } ] }
+    ]
+  }
+}
+```
+
+It only looks at renders modified in the last 2 hours, so older videos never block.
 
 ## Good to know
 

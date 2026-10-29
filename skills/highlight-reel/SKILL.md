@@ -28,6 +28,13 @@ The style is commentary-led gameplay, not a montage. Pick one reference video wh
 3. `Review\<date> review.md`: a segment table (capture, in/out, kills, why kept), total footage length, segments used, 3 title options, description, tags. Frame titles around skill, not gore.
 Skip a cut that already exists. Put working files in `Highlights\<date>\`.
 
+## Pre-flight (before cutting anything)
+Check and report anything missing, then continue (interactive: wait for the creator if something blocks the build):
+- ffmpeg/ffprobe run, and `<TOOLS>\validate_reel.py` exists.
+- Resolve MCP connects (`get_resolve_status`); if not, `launch_resolve`. Remind the creator the project must be 60 fps.
+- Captures for the date exist; list them with durations.
+- List every audio file under `Assets\Music` **recursively** (subfolders count). Never conclude there's no music from the top level alone; never generate any.
+
 ## Find kills
 - Run `python -I <TOOLS>\scan_xp.py <capture>` (~1 min per 10 min of footage). It prints windows where the yellow "N XP" popup next to the crosshair is up. The popup stays up and its total climbs during a streak. It's calibrated on 1920x1080 MW4 captures; other games or HUD scales need the box and template re-traced.
 - The popup is brief, so check stills *inside* each window (a contact sheet is cheap). Count kills from the XP total and the "Nth KILL" medal. Popup time lags the kill by ~0.2 s. Ignore objective-point and assist windows.
@@ -37,6 +44,9 @@ Skip a cut that already exists. Put working files in `Highlights\<date>\`.
 - **Start:** fade audio and picture in from silence and black.
 - **End:** fade audio and picture out to silence and black.
 - Each fade is **1 s or shorter**. This applies to the main video and the Short.
+
+## Cut list (before building)
+Write the planned segments as a table (capture, in, out, what happens, why chosen) to `Highlights\<date>\cutlist.md`. Check each segment: it ends **before** any death, killcam, scoreboard or end-of-match screen, and back-to-back kills are preferred over reactions. Interactive run: show the table and wait for the creator's OK before building. Headless run (`launch.ps1`): don't wait; build, and put the same table in review.md.
 
 ## Horizontal main video
 1. **Long takes:** each segment runs uncut from 5-10 s before the first kill to the end of the streak, typically 20-60 s. Never cut between kills inside a streak.
@@ -72,8 +82,22 @@ The creator tweaks the cut on the timeline during review, so every deliverable m
 ## Master
 - Target -14 LUFS integrated, true peak <= -1 dBTP.
 - Set clip and track levels in Resolve, render, then measure the **final MP4** with ffmpeg `ebur128=peak=true`. Adjust and re-render until it's within about 0.5 LU, and report the numbers. For reference, one game-only session needed about +5.9 dB, from -18.5 to -14.3 LUFS.
+- **Validate every render:** `python -I <TOOLS>\validate_reel.py <mp4> [--short] --out Highlights\<date>`. It checks resolution, 60 fps, length, -14 LUFS, true peak, audio and picture fades, and writes `<name>_cuts.png` (last frames before each cut). Fix and re-render until all checks pass, then open the cuts image and confirm no death, killcam or scoreboard frames. Quote the PASS/FAIL lines in review.md.
 - On the ffmpeg route, `loudnorm` alone left AAC peaks at -0.1 dBTP; use `volume` + `alimiter=limit=0.7:level=false` there.
 - Write review.md, naming the Resolve timelines. Report what you didn't check (phone listen, mic reactions judged from levels or transcripts, not by ear).
+
+## Optional skills and agents
+These come from other Claude Code plugins. Use whichever you have installed, at the step shown. This skill's own rules and numbers win wherever they disagree.
+- **`video-editor-skills:resolve-scripting`**: before any Resolve script (also under Assembly).
+- **`ffmpeg-llm:ffmpeg-expert`** (agent): when an ffmpeg command fails, loudness or true peak won't land, or the fallback needs a complex filtergraph.
+- **`video-editor-skills:voice-and-audio`**: when the mic sounds muffled, noisy or boomy, or after a normalise made a clip worse. Use its diagnosis, Voice Isolation and EQ recipe. **Ignore its normalise step and -16 LKFS target:** ours is -14 LUFS / -1 dBTP (see Master). EQ is by hand, so list it in review.md rather than driving the UI.
+- **`video-editor-skills:youtube-export`**: before the first render of a session, for the colour-tag check (Same as Project on Rec.709-A) and bitrate sanity. Its 4K bitrates are too high for 1080p60; keep files reasonable and the Render settings above.
+- **`video-cleanup`**: only if the mic has real background noise, wind or hum. It needs a DeepFilterNet download, so **ask first and skip it in headless runs** (note "mic denoise not done" in review.md). It writes new files and never touches originals.
+- **`watch-video:watch-video`**: interactive runs only, and only after the creator OKs sending the render to that service. Use it to catch bad cut points and audio problems that stills and levels can't show. Skip in headless runs and say it wasn't done.
+- **vidIQ (read-only, never publish):**
+  - `vidiq:vidiq-packaging-studio`: for the 3 title options and 3 thumbnail concepts in review.md, to sharpen packaging around skill, not gore.
+  - `vidiq:vidiq-retention-analysis`: at the start of a session, on the most recent published video, to see where viewers dropped off and feed that into cut and pacing choices. Needs the YouTube channel authorised in vidIQ; if it isn't, skip it and note that in review.md. Don't prompt for authorisation in headless runs.
+  - **Never** call the vidIQ tools that upload, update a video or its thumbnail, post or reply to comments, or publish. **Never** use `vidiq_generate_music` or any generated music (see Inputs). Analysis only; the creator uploads by hand.
 
 ## Traps
 - Odd crop widths/heights in rawvideo pipes return short buffers. Keep crops even.
